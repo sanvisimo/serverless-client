@@ -2,25 +2,23 @@ import React, { Component } from "react";
 import { API } from "aws-amplify";
 import { FormGroup, FormControl, ControlLabel } from "react-bootstrap";
 import LoaderButton from "../components/LoaderButton";
-import { s3Upload } from "../libs/awsLib";
-import config from "../config";
-import "./NewNote.css";
+import StarRating from "react-bootstrap-star-rating";
+import "./NewReview.css";
 
-export default class NewNote extends Component {
+export default class NewReview extends Component {
   constructor(props) {
     super(props);
 
-    this.file = null;
-
     this.state = {
       isLoading: null,
-      content: ""
+      content: "",
+      vote: null
     };
   }
 
-  createNote(note) {
-    return API.post("notes", "/notes", {
-      body: note
+  createReview(review) {
+    return API.post("reviews", "/reviews", {
+      body: review
     });
   }
 
@@ -29,32 +27,31 @@ export default class NewNote extends Component {
   }
 
   handleChange = event => {
+    console.log("ev: ", event.target.id, event.target.value);
     this.setState({
       [event.target.id]: event.target.value
     });
-  }
+  };
 
-  handleFileChange = event => {
-    this.file = event.target.files[0];
-  }
+  handleVoteChange = event => {
+    this.setState({
+      vote: event.target.value
+    });
+  };
 
   handleSubmit = async event => {
     event.preventDefault();
 
-    if (this.file && this.file.size > config.MAX_ATTACHMENT_SIZE) {
-      alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
+    if (this.state.vote == null) {
+      alert(`Please select a vote.`);
       return;
     }
 
     this.setState({ isLoading: true });
 
     try {
-      const attachment = this.file
-        ? await s3Upload(this.file)
-        : null;
-
-      await this.createNote({
-        attachment,
+      await this.createReview({
+        vote: this.state.vote,
         content: this.state.content
       });
       this.props.history.push("/");
@@ -62,22 +59,28 @@ export default class NewNote extends Component {
       alert(e);
       this.setState({ isLoading: false });
     }
-  }
+  };
 
   render() {
     return (
-      <div className="NewNote">
+      <div className="NewReview">
         <form onSubmit={this.handleSubmit}>
+          <FormGroup controlId="vote">
+            <ControlLabel>Vote</ControlLabel>
+            <StarRating
+              onRatingChange={this.handleVoteChange}
+              defaultValue={this.state.vote}
+              min={0}
+              max={5}
+              step={0.5}
+            />
+          </FormGroup>
           <FormGroup controlId="content">
             <FormControl
               onChange={this.handleChange}
               value={this.state.content}
               componentClass="textarea"
             />
-          </FormGroup>
-          <FormGroup controlId="file">
-            <ControlLabel>Attachment</ControlLabel>
-            <FormControl onChange={this.handleFileChange} type="file" />
           </FormGroup>
           <LoaderButton
             block

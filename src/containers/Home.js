@@ -3,6 +3,7 @@ import { API } from "aws-amplify";
 import { Link } from "react-router-dom";
 import { LinkContainer } from "react-router-bootstrap";
 import { PageHeader, ListGroup, ListGroupItem } from "react-bootstrap";
+import StarRating from "react-bootstrap-star-rating";
 import "./Home.css";
 
 export default class Home extends Component {
@@ -11,7 +12,7 @@ export default class Home extends Component {
 
     this.state = {
       isLoading: true,
-      notes: []
+      reviews: []
     };
   }
 
@@ -21,8 +22,8 @@ export default class Home extends Component {
     }
 
     try {
-      const notes = await this.notes();
-      this.setState({ notes });
+      const reviews = await this.reviews();
+      this.setState({ reviews });
     } catch (e) {
       alert(e);
     }
@@ -30,40 +31,46 @@ export default class Home extends Component {
     this.setState({ isLoading: false });
   }
 
-  notes() {
-    return API.get("notes", "/notes");
+  reviews() {
+    return API.get("reviews", "/reviews");
   }
 
-  renderNotesList(notes) {
-    return [{}].concat(notes).map(
-      (note, i) =>
-        i !== 0
-          ? <LinkContainer
-              key={note.noteId}
-              to={`/notes/${note.noteId}`}
-            >
-              <ListGroupItem header={note.content.trim().split("\n")[0]}>
-                {"Created: " + new Date(note.createdAt).toLocaleString()}
-              </ListGroupItem>
-            </LinkContainer>
-          : <LinkContainer
-              key="new"
-              to="/notes/new"
-            >
-              <ListGroupItem>
-                <h4>
-                  <b>{"\uFF0B"}</b> Create a new note
-                </h4>
-              </ListGroupItem>
-            </LinkContainer>
+  renderReviewsList(reviews) {
+    return [{}].concat(reviews).map(
+      (review, i) =>
+        i !== 0 ? (
+          <LinkContainer
+            key={review.reviewId}
+            to={`/reviews/${review.reviewId}`}
+          >
+            <ListGroupItem header={review.content.trim().split("\n")[0]}>
+              <StarRating
+                defaultValue={review.vote}
+                min={0}
+                max={5}
+                step={0.5}
+                readonly
+              />
+              {"Created: " + new Date(review.createdAt).toLocaleString()}
+            </ListGroupItem>
+          </LinkContainer>
+        ) : (
+          <LinkContainer key="new" to="/reviews/new">
+            <ListGroupItem>
+              <h4>
+                <b>{"\uFF0B"}</b> Create a new review
+              </h4>
+            </ListGroupItem>
+          </LinkContainer>
+        )
     );
   }
 
   renderLander() {
     return (
       <div className="lander">
-        <h1>Scratch</h1>
-        <p>A simple note taking app</p>
+        <h1>Revidoo</h1>
+        <p>A review app</p>
         <div>
           <Link to="/login" className="btn btn-info btn-lg">
             Login
@@ -76,12 +83,12 @@ export default class Home extends Component {
     );
   }
 
-  renderNotes() {
+  renderReviews() {
     return (
-      <div className="notes">
-        <PageHeader>Your Notes</PageHeader>
+      <div className="reviews">
+        <PageHeader>Your Reviews</PageHeader>
         <ListGroup>
-          {!this.state.isLoading && this.renderNotesList(this.state.notes)}
+          {!this.state.isLoading && this.renderReviewsList(this.state.reviews)}
         </ListGroup>
       </div>
     );
@@ -90,7 +97,9 @@ export default class Home extends Component {
   render() {
     return (
       <div className="Home">
-        {this.props.isAuthenticated ? this.renderNotes() : this.renderLander()}
+        {this.props.isAuthenticated
+          ? this.renderReviews()
+          : this.renderLander()}
       </div>
     );
   }

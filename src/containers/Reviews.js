@@ -2,110 +2,94 @@ import React, { Component } from "react";
 import { API, Storage } from "aws-amplify";
 import { FormGroup, FormControl, ControlLabel } from "react-bootstrap";
 import LoaderButton from "../components/LoaderButton";
-import { s3Upload } from "../libs/awsLib";
-import config from "../config";
-import "./Notes.css";
+import "./Reviews.css";
+import StarRating from "react-bootstrap-star-rating";
 
-export default class Notes extends Component {
+export default class Reviews extends Component {
   constructor(props) {
     super(props);
-
-    this.file = null;
 
     this.state = {
       isLoading: null,
       isDeleting: null,
-      note: null,
+      review: null,
       content: "",
-      attachmentURL: null
+      vote: null
     };
   }
 
   async componentDidMount() {
     try {
-      let attachmentURL;
-      const note = await this.getNote();
-      const { content, attachment } = note;
-
-      if (attachment) {
-        attachmentURL = await Storage.vault.get(attachment);
-      }
+      const review = await this.getReview();
+      const { content, vote } = review;
 
       this.setState({
-        note,
+        review,
         content,
-        attachmentURL
+        vote
       });
     } catch (e) {
       alert(e);
     }
   }
 
-  getNote() {
-    return API.get("notes", `/notes/${this.props.match.params.id}`);
+  getReview() {
+    return API.get("reviews", `/reviews/${this.props.match.params.id}`);
   }
 
-  saveNote(note) {
-    return API.put("notes", `/notes/${this.props.match.params.id}`, {
-      body: note
+  saveReview(review) {
+    return API.put("reviews", `/reviews/${this.props.match.params.id}`, {
+      body: review
     });
   }
 
-  deleteNote() {
-    return API.del("notes", `/notes/${this.props.match.params.id}`);
+  deleteReview() {
+    return API.del("reviews", `/reviews/${this.props.match.params.id}`);
   }
 
   validateForm() {
     return this.state.content.length > 0;
   }
 
-  formatFilename(str) {
-    return str.replace(/^\w+-/, "");
-  }
-
   handleChange = event => {
     this.setState({
       [event.target.id]: event.target.value
     });
-  }
+  };
 
-  handleFileChange = event => {
-    this.file = event.target.files[0];
-  }
+  handleVoteChange = event => {
+    this.setState({
+      vote: event.target.value
+    });
+  };
 
   handleSubmit = async event => {
-    let attachment;
-
     event.preventDefault();
 
-    if (this.file && this.file.size > config.MAX_ATTACHMENT_SIZE) {
-      alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
+    if (this.state.vote == null) {
+      alert(`Please vote.`);
       return;
     }
 
     this.setState({ isLoading: true });
 
     try {
-      if (this.file) {
-        attachment = await s3Upload(this.file);
-      }
-
-      await this.saveNote({
+      await this.saveReview({
         content: this.state.content,
-        attachment: attachment || this.state.note.attachment
+        vote: this.state.vote || this.state.review.vote
       });
       this.props.history.push("/");
     } catch (e) {
       alert(e);
       this.setState({ isLoading: false });
     }
-  }
+  };
 
   handleDelete = async event => {
     event.preventDefault();
 
     const confirmed = window.confirm(
-      "Are you sure you want to delete this note?"
+      "Are you sure you want to delete this review?"
     );
 
     if (!confirmed) {
@@ -115,18 +99,18 @@ export default class Notes extends Component {
     this.setState({ isDeleting: true });
 
     try {
-      await this.deleteNote();
+      await this.deleteReview();
       this.props.history.push("/");
     } catch (e) {
       alert(e);
       this.setState({ isDeleting: false });
     }
-  }
+  };
 
   render() {
     return (
-      <div className="Notes">
-        {this.state.note &&
+      <div className="Reviews">
+        {this.state.review && (
           <form onSubmit={this.handleSubmit}>
             <FormGroup controlId="content">
               <FormControl
@@ -135,23 +119,15 @@ export default class Notes extends Component {
                 componentClass="textarea"
               />
             </FormGroup>
-            {this.state.note.attachment &&
-              <FormGroup>
-                <ControlLabel>Attachment</ControlLabel>
-                <FormControl.Static>
-                  <a
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    href={this.state.attachmentURL}
-                  >
-                    {this.formatFilename(this.state.note.attachment)}
-                  </a>
-                </FormControl.Static>
-              </FormGroup>}
-            <FormGroup controlId="file">
-              {!this.state.note.attachment &&
-                <ControlLabel>Attachment</ControlLabel>}
-              <FormControl onChange={this.handleFileChange} type="file" />
+            <FormGroup controlId="vote">
+              <ControlLabel>vote</ControlLabel>
+              <StarRating
+                onRatingChange={this.handleVoteChange}
+                defaultValue={this.state.vote}
+                min={0}
+                max={5}
+                step={0.5}
+              />
             </FormGroup>
             <LoaderButton
               block
@@ -172,7 +148,8 @@ export default class Notes extends Component {
               text="Delete"
               loadingText="Deleting…"
             />
-          </form>}
+          </form>
+        )}
       </div>
     );
   }
