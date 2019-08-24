@@ -60,7 +60,10 @@ class App extends Component {
             <Navbar.Collapse>
               <Nav pullRight>
                 {this.state.isAuthenticated ? (
-                  <NavItem onClick={this.handleLogout}>Logout</NavItem>
+                    <Fragment>
+                      <NavItem href="http://codecreation.s3-website-eu-west-1.amazonaws.com/">Generate Code</NavItem>
+                      <NavItem onClick={this.handleLogout}>Logout</NavItem>
+                    </Fragment>
                 ) : (
                   <Fragment>
                     <LinkContainer to="/signup">
